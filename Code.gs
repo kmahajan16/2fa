@@ -19,8 +19,20 @@ Rules:
 - Do NOT ask follow-up questions or mention their exact survey numbers/seconds back to them (make it feel like a smart, natural security alert).
 `;
 
-function doGet() {
-  return HtmlService.createHtmlOutputFromFile('Index')
+function doGet(e) {
+  const params = (e && e.parameter) || {};
+  const rid = params.rid || '';
+
+  const returnUrl = 'https://utk.co1.qualtrics.com/jfe/form/SV_5dopubFWkIN8cd0?rid=' + encodeURIComponent(rid);
+
+  Logger.log(returnUrl);
+
+  const template = HtmlService.createTemplateFromFile('Index');
+  template.rid = rid;
+  template.returnUrl = returnUrl;
+
+  return template
+    .evaluate()
     .setTitle('COSC 469/569 Class Project — 2FA Prompt Study')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
@@ -90,6 +102,7 @@ function saveFinalResponse(studyData) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Responses');
   sheet.appendRow([
     new Date(),
+    studyData.rid,
     'Condition ' + studyData.condition,
     studyData.decision,
     studyData.decisionTimeSec,
@@ -111,6 +124,7 @@ function generateSimulatedData() {
   // Clear old test rows and set the exact 8 headers
   sheet.clear();
   sheet.appendRow([
+    'RunID',
     'Timestamp',
     'Condition',
     'Initial_Decision',
@@ -184,6 +198,7 @@ function generateSimulatedData() {
       }
 
       rows.push([
+        rid,
         ts,
         cond,
         initialDecision,
