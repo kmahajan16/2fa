@@ -10,7 +10,6 @@
     button { padding: 8px 18px; margin-top: 14px; cursor: pointer; }
     label { margin-right: 12px; cursor: pointer; }
 
-    /* Built-in 2FA Mobile Prompt Mockup Card */
     .phone-card {
       max-width: 320px;
       margin: 16px auto;
@@ -45,12 +44,11 @@
     <button onclick="toStep2()">Next</button>
   </div>
 
-  <!-- Step 2: Section A / B / C / D -->
+  <!-- Step 2: Prompt + Ratings + Warning + Final Decision (all on one page) -->
   <div id="step2" class="box hidden">
     <h3 id="secTitle">Section A</h3>
     <p><strong>Based on the prompt, what would you do? *</strong></p>
 
-    <!-- Dynamic 2FA Prompt Graphic -->
     <div id="promptVisual"></div>
 
     <label><input type="radio" name="decision" value="Approve"> Approve</label>
@@ -70,29 +68,28 @@
     <label><input type="radio" name="conf" value="4"> 4</label>
     <label><input type="radio" name="conf" value="5"> 5</label><br>
 
-    <button id="step2Btn" onclick="toStep3()">Next</button>
-  </div>
+    <div id="warningArea" class="hidden">
+      <div id="warningText" class="warning-box"></div>
 
-  <!-- Step 3: Generated Warning + Final Question -->
-  <div id="step3" class="box hidden">
-    <h3>Security Notice</h3>
-    <div id="warningText" class="warning-box">Generating notice...</div>
-
-    <div id="finalQuestionArea" class="hidden">
-      <p><strong>After reading this warning, what would you do now? *</strong></p>
+      <p><strong>After reading this, what would you do now? *</strong></p>
       <label><input type="radio" name="finalDecision" value="Approve"> Approve</label>
       <label><input type="radio" name="finalDecision" value="Deny"> Deny</label><br>
       <button id="submitBtn" onclick="submitStudy()">Submit</button>
     </div>
+
+    <button id="step2Btn" onclick="toStep2b()">Next</button>
   </div>
 
-  <!-- Step 4: Done -->
-  <div id="step4" class="box hidden">
+  <!-- Step 3: Done -->
+  <div id="step3" class="box hidden">
     <h3>Thank you!</h3>
     <p>Your response has been recorded for the COSC 469/569 Class Project.</p>
   </div>
 
   <script>
+    const RID = '<%= rid ? rid : "" %>';
+    const RETURN_URL = '<%= returnUrl ? returnUrl : "" %>';
+
     const PROMPT_CARDS = {
       '1': `
         <div class="phone-card">
@@ -169,7 +166,7 @@
       step2StartTime = performance.now();
     }
 
-    function toStep3() {
+    function toStep2b() {
       const d = document.querySelector('input[name="decision"]:checked');
       const a = document.querySelector('input[name="annoyed"]:checked');
       const f = document.querySelector('input[name="conf"]:checked');
@@ -182,17 +179,17 @@
       studyData.annoyed = a.value;
       studyData.confidence = f.value;
 
-      document.getElementById('step2').classList.add('hidden');
-      document.getElementById('step3').classList.remove('hidden');
+      document.getElementById('step2Btn').classList.add('hidden');
+      document.getElementById('warningArea').classList.remove('hidden');
+      document.getElementById('warningText').innerText = 'Generating notice...';
 
       google.script.run
         .withSuccessHandler(warning => {
           studyData.warning = warning;
           document.getElementById('warningText').innerText = warning;
-          document.getElementById('finalQuestionArea').classList.remove('hidden');
         })
         .withFailureHandler(err => {
-          alert('Error: ' + err.message);
+          document.getElementById('warningText').innerText = 'Unable to generate notice at this time.';
         })
         .generateWarning(studyData);
     }
@@ -206,17 +203,31 @@
       btn.disabled = true;
       btn.innerText = 'Saving...';
 
-      google.script.run
-        .withSuccessHandler(() => {
-          document.getElementById('step3').classList.add('hidden');
-          document.getElementById('step4').classList.remove('hidden');
-        })
-        .withFailureHandler(err => {
-          btn.disabled = false;
-          btn.innerText = 'Submit';
-          alert('Error: ' + err.message);
-        })
-        .saveFinalResponse(studyData);
+      if (RETURN_URL) {
+        studyData.finalDecision = finalD.value;
+        google.script.run
+          .withSuccessHandler(() => {
+            window.location.href = RETURN_URL;
+          })
+          .withFailureHandler(err => {
+            btn.disabled = false;
+            btn.innerText = 'Submit';
+            alert('Error: ' + err.message);
+          })
+          .saveFinalResponse(studyData);
+      } else {
+        google.script.run
+          .withSuccessHandler(() => {
+            document.getElementById('step2').classList.add('hidden');
+            document.getElementById('step3').classList.remove('hidden');
+          })
+          .withFailureHandler(err => {
+            btn.disabled = false;
+            btn.innerText = 'Submit';
+            alert('Error: ' + err.message);
+          })
+          .saveFinalResponse(studyData);
+      }
     }
   </script>
 </body>
