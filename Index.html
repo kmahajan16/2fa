@@ -88,8 +88,8 @@
 
   <!-- Step 4: Done -->
   <div id="step4" class="box hidden">
-    <h3>Thank you!</h3>
-    <p>Your response has been recorded for the COSC 469/569 Class Project.</p>
+    <h3>Click below to continue to survey.</h3>
+    <button id="continueBtn">Continue to the next part</button>
   </div>
 
   <script>
@@ -197,10 +197,14 @@
         .generateWarning(studyData);
     }
 
+    const RID = <?!= JSON.stringify(rid) ?>;
+    const RETURN_URL = <?!= JSON.stringify(returnUrl) ?>;
+
     function submitStudy() {
       const finalD = document.querySelector('input[name="finalDecision"]:checked');
       if (!finalD) return alert('Please select an option before submitting.');
 
+      studyData.rid = RID;
       studyData.finalDecision = finalD.value;
       const btn = document.getElementById('submitBtn');
       btn.disabled = true;
@@ -218,6 +222,11 @@
         })
         .saveFinalResponse(studyData);
     }
+
+    document.getElementById('continueBtn').addEventListener('click', () => {
+      window.top.location.href = RETURN_URL;
+    });
+
   </script>
 </body>
 </html>
